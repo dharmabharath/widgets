@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Widget</title>
+</head>
+
+<body>
+    <h1>Welcome to Intellient Chat Widget</h1>
+    <!-- <link rel="stylesheet" href="styles.css"> -->
+
+    <script src="https://alcdn.msauth.net/browser/2.18.0/js/msal-browser.min.js"></script>
+    <script>
+        (function (w, d, s, o, f, js, fjs) {
+            (js = d.createElement(s)), (fjs = d.getElementsByTagName(s)[0]);
+            js.id = o;
+            js.src = f;
+            js.async = 1;
+            fjs.parentNode.insertBefore(js, fjs);
+            js = d.createElement("div");
+            js.id = "fini-widget-root";
+            d.body.appendChild(js);
+            w.intellientoptions = {
+                widgetId: "http://127.0.0.1:5500/",
+                mode: "widget"  // "widget" | "standalone" | "searchbar"
+            };
+        })(window, document, "script", "FiniWidget", "/chat-widget.js");
+    </script>
+
+
+</body>
+
+</html>
