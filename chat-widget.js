@@ -240,6 +240,12 @@
       height: 20px;
       fill: white;
     }
+        .ask-intellient-title {
+    display: block; 
+    font-size: 20px;
+    margin: 0;
+    font-weight: bold;
+  }
  
     .fini-timestamp {
       font-size: 12px;
@@ -368,7 +374,7 @@ input {
     markdown = markdown.replace(/\*(.*?)\*/g, "<em>$1</em>");
 
     // Convert - list items to <ul><li>
-    markdown = markdown.replace(/^\s*-\s+(.*)$/g, "<ul><li>$1</li></ul>");
+    markdown = markdown.replace(/^\s*-\s+(.*)$/gm, "<ul><li>$1</li></ul>");
 
     // Handle line breaks
     markdown = markdown.replace(/\n/g, "<br>");
@@ -386,69 +392,80 @@ input {
   ) {
     abortController = new AbortController();
     const { signal } = abortController;
+    console.log("intelliBot", intelliBot);
 
+    console.log("userMessage", userMessage);
     let filteredBot;
     if (intelliBot) {
+      // console.log("intelliBot", await personaData);
+
       filteredBot = personaData.filter((name) => name.name === intelliBot);
+      console.log("filteredBot", filteredBot);
     }
     conversationHistory.push({ role: "user", content: userMessage });
-
     try {
-      const response = await fetch("https://intellientuat.azurewebsites.net/api/link-widget", {
-        method: "POST",
-        body: JSON.stringify({ userMessage, filteredBot, conversationHistory }),
-        signal,
-      });
+      const response = await fetch(
+        "https://intellientuat.azurewebsites.net/api/link-widget",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            userMessage,
+            filteredBot,
+            conversationHistory, // Add the data you want to pos
+          }),
+          signal,
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log("resposnes", data);
       const contentSpan = messageElement.querySelector(".fini-message-content");
 
       if (data.choices && data.choices[0]?.message?.content) {
         let content = data.choices[0].message.content;
-        content = markdownToHtml(content);
+        console.log("contemt", content);
 
+        content = markdownToHtml(content);
         let displayedContent = "";
         const contentArray = content.split("");
+
         const messagesContainer = document.getElementById("finiChatMessages");
 
+        // Flag to check if the user has scrolled up
         let userScrolledUp = false;
+
         messagesContainer.addEventListener("scroll", () => {
           const isAtBottom =
             messagesContainer.scrollHeight -
               messagesContainer.scrollTop -
               messagesContainer.clientHeight <
-            10;
+            10; // Adjust threshold as needed
           userScrolledUp = !isAtBottom;
         });
-
-        const batchSize = 50; // Update DOM every 50 characters
+        function updateContent(content) {
+          requestAnimationFrame(() => {
+            contentSpan.innerHTML = content;
+          });
+        }
         for (const char of contentArray) {
           if (signal.aborted) {
             console.log("Streaming stopped");
-            return;
+            return; // Exit the function early if the request is aborted
           }
-
           displayedContent += char;
+          updateContent(displayedContent);
 
-          if (
-            displayedContent.length % batchSize === 0 ||
-            contentArray.indexOf(char) === contentArray.length - 1
-          ) {
-            contentSpan.innerHTML = displayedContent;
-
-            if (!userScrolledUp) {
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
+          if (!userScrolledUp) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 10)); // Adjust speed
+          await new Promise((resolve) => setTimeout(resolve, 5));
         }
-
-        conversationHistory.push({ role: "assistant", content });
+        conversationHistory.push({ role: "assistant", content: content });
       } else {
         throw new Error("No content in response");
       }
@@ -459,12 +476,12 @@ input {
         console.log("Stream was aborted by user.");
       } else {
         console.error("Error:", error);
+
         messageElement.querySelector(".fini-message-content").textContent =
           "Sorry, there was an error processing your request. Please try again later.";
       }
     }
   }
-
   function logout() {
     msalInstance.logout();
   }
@@ -488,7 +505,7 @@ input {
     chatContainer.innerHTML = `
       <div class="fini-chat-header">
         <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
-        <h3 style="margin: 0;">Ask Intellient</h3>
+           <label class="ask-intellient-title">Ask Intellient</label>
         <div class="fini-chat-close">
           <svg viewBox="0 0 24 24">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
