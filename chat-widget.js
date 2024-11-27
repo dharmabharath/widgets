@@ -165,7 +165,6 @@
     }
  
     .fini-chat-message {
-      max-width: 70%;
       padding: 8px 16px;
       border-radius: 16px;
       margin: 4px 0;
@@ -374,7 +373,7 @@ input {
     markdown = markdown.replace(/\*(.*?)\*/g, "<em>$1</em>");
 
     // Convert - list items to <ul><li>
-    markdown = markdown.replace(/^\s*-\s+(.*)$/gm, "<ul><li>$1</li></ul>");
+    markdown = markdown.replace(/^\s*-\s+(.*)$/g, "<ul><li>$1</li></ul>");
 
     // Handle line breaks
     markdown = markdown.replace(/\n/g, "<br>");
