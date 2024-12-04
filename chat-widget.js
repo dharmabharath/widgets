@@ -1,85 +1,183 @@
 (function (w, d) {
-  const msalConfig = {
-    auth: {
-      clientId: "5c366cc7-6259-4ffa-96ab-8b13ac790d67", // Replace with your client ID
-      authority:
-        "https://login.microsoftonline.com/b092f630-a3ad-4610-b96e-4a6c75c2a6cc", // Replace with your tenant ID
-    },
-  };
-  const msalInstance = new msal.PublicClientApplication(msalConfig);
+  const widgetOptions = w.intellientoptions || { mode: "widget" };
+  const mode = widgetOptions.mode || "widget";
+  const widgetId = widgetOptions.widgetId;
+  let validationResponse;
+  let validatedLogo;
+  let personaData;
+  const fontFamily =
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const secondaryColor = "#f0f2f5";
+  console.log("widgetId", widgetId);
+  console.log(" window.location.href", window.location.href);
 
-  async function checkLoginStatus() {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      console.log("User  is already logged in:", accounts);
-      // You can use the first account to get an access token if needed
-      return accounts[0]; // Return the first account
-    } else {
-      console.log("User  is not logged in.");
-      return null; // No accounts found
+  async function persona() {
+    try {
+      const response = await fetch(
+        "https://intellientuat.azurewebsites.net/api/link-widget/intellibots",
+        {
+          method: "GET",
+        }
+      );
+      const data = await response.json();
+      personaData = data.response;
+      return data;
+    } catch {
+      console.log("error from persona getmethod");
     }
   }
 
-  async function login() {
-    const existingAccount = await checkLoginStatus();
-    console.log(existingAccount);
+  function markdownToHtml(markdown) {
+    // Convert **bold** to <strong>
+    markdown = markdown.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-    if (existingAccount) {
-      console.log("Using existing account:", existingAccount);
-      // Optionally, you can acquire a token silently here if needed
-      // e.g., await msalInstance.acquireTokenSilent({ account: existingAccount });
-    } else {
-      try {
-        const loginResponse = await msalInstance.loginPopup();
-        console.log("Login successful", loginResponse);
-        const accessToken = loginResponse.accessToken;
-        // Store the access token or use it as needed
-      } catch (error) {
-        console.error("Login failed", error);
+    // Convert *italic* to <em>
+    markdown = markdown.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    // Convert - list items to <ul><li>
+    markdown = markdown.replace(/^\s*-\s+(.*)$/g, "<ul><li>$1</li></ul>");
+
+    // Handle line breaks
+    markdown = markdown.replace(/\n/g, "<br>");
+
+    return markdown;
+  }
+
+  // Updated code - Intellient UAT
+  let abortController = null;
+  let conversationHistory = [];
+  async function streamFromAzureOpenAI(
+    userMessage,
+    messageElement,
+    intelliBot
+  ) {
+    abortController = new AbortController();
+    const { signal } = abortController;
+    console.log("intelliBot", intelliBot);
+
+    console.log("userMessage", userMessage);
+    let filteredBot;
+    if (intelliBot) {
+      filteredBot = personaData.filter((name) => name.name === intelliBot);
+      console.log("filteredBot", filteredBot);
+    }
+    conversationHistory.push({ role: "user", content: userMessage });
+    try {
+      const response = await fetch(
+        "https://intellientuat.azurewebsites.net/api/link-widget",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            userMessage,
+            filteredBot,
+            conversationHistory,
+          }),
+          signal,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("resposnes", data);
+      const contentSpan = messageElement.querySelector(".fini-message-content");
+
+      if (data.choices) {
+        let content;
+        if (data.choices[0]?.message?.content) {
+          content = data.choices[0].message.content;
+        } else {
+          content = data.choices;
+        }
+        console.log("content", content);
+
+        content = markdownToHtml(content);
+        let displayedContent = "";
+        const contentArray = content.split("");
+
+        const messagesContainer = document.getElementById("finiChatMessages");
+
+        // Flag to check if the user has scrolled up
+        let userScrolledUp = false;
+
+        messagesContainer.addEventListener("scroll", () => {
+          const isAtBottom =
+            messagesContainer.scrollHeight -
+              messagesContainer.scrollTop -
+              messagesContainer.clientHeight <
+            10; // Adjust threshold as needed
+          userScrolledUp = !isAtBottom;
+        });
+        function updateContent(content) {
+          requestAnimationFrame(() => {
+            contentSpan.innerHTML = content;
+          });
+        }
+        for (const char of contentArray) {
+          if (signal.aborted) {
+            console.log("Streaming stopped");
+            return; // Exit the function early if the request is aborted
+          }
+          displayedContent += char;
+          updateContent(displayedContent);
+
+          if (!userScrolledUp) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        conversationHistory.push({ role: "assistant", content: content });
+      } else {
+        throw error("no content in response");
+      }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        messageElement.querySelector(".fini-message-content").textContent =
+          "Response Stopped...";
+        console.log("Stream was aborted by user.");
+      } else {
+        console.error("Error:", error);
+
+        messageElement.querySelector(".fini-message-content").textContent =
+          "Sorry, there was an error processing your request. Please try again later.";
       }
     }
   }
 
-  const widgetOptions = w.intellientoptions || { mode: "widget" };
-  const mode = widgetOptions.mode || "widget";
-  const widgetId = widgetOptions.widgetId;
-  console.log("widgetId", widgetId);
-  console.log(" window.location.href", window.location.href);
+  async function valiadateWidget(widgetId) {
+    const response = await fetch(
+      "https://intellientuat.azurewebsites.net/api/link-widget/widget-validations",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          widgetId,
+        }),
+      }
+    );
+    const data = await response.json();
+    validationResponse = data;
+    return data;
+  }
 
-  // if (widgetId !== window.location.href) {
-  //   console.error("Widget ID is required but not provided.");
-  //   return; // Prevent further execution
-  // }
+  async function createChatWidget() {
+    await valiadateWidget(widgetId);
 
-  // Default branding
-  const DEFAULT_LOGO =
-    "https://delightful-beach-07c9da51e.5.azurestaticapps.net/widget-logo.png"; // Default Logo - Intellient
-  const DEFAULT_THEME = {
-    primaryColor: "#0084ff",
-    secondaryColor: "#f0f2f5",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  };
+    console.log("validationResponse", validationResponse);
+    validatedLogo = validationResponse.widgetIcon;
 
-  // Get customer branding or use defaults
-  const branding = {
-    logo: widgetOptions.branding?.logo || DEFAULT_LOGO,
-    theme: {
-      primaryColor:
-        widgetOptions.branding?.theme?.primaryColor ||
-        DEFAULT_THEME.primaryColor,
-      secondaryColor:
-        widgetOptions.branding?.theme?.secondaryColor ||
-        DEFAULT_THEME.secondaryColor,
-      fontFamily:
-        widgetOptions.branding?.theme?.fontFamily || DEFAULT_THEME.fontFamily,
-    },
-  };
+    if (!window.location.href.startsWith(validationResponse.domain)) {
+      console.log("unauthorised");
+      return;
+    }
+    await persona();
+    console.log("personaData", personaData);
 
-  // Styles for the widget
-  const styles = `
+    const styles = `
     .fini-widget-base {
-      font-family: ${branding.theme.fontFamily};
+      font-family: ${fontFamily};
       z-index: 999999;
     }
  
@@ -128,7 +226,7 @@
  
     .fini-chat-header {
       padding: 16px;
-      background: ${branding.theme.primaryColor};
+      background: ${validationResponse.color};
       color: white;
       border-radius: 12px 12px 0 0;
       display: flex;
@@ -161,7 +259,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      background: ${branding.theme.secondaryColor};
+      background: ${secondaryColor};
     }
  
     .fini-chat-message {
@@ -169,7 +267,7 @@
       border-radius: 16px;
       margin: 4px 0;
       word-wrap: break-word;
-      font-size: 14px;
+      font-size: 13px;
       display: flex;
       align-items: flex-start;
       gap: 8px;
@@ -193,7 +291,7 @@
     }
  
     .fini-chat-message.sent {
-      background: ${branding.theme.primaryColor};
+      background: ${validationResponse.color};
       color: white;
       align-self: flex-end;
       border-bottom-right-radius: 4px;
@@ -218,7 +316,7 @@
  
     .fini-chat-input button {
       padding: 12px;
-      background: ${branding.theme.primaryColor};
+      background: ${validationResponse.color};
       color: white;
       border: none;
       border-radius: 50%;
@@ -317,181 +415,9 @@ input {
       50% { transform: translateY(-5px); }
     }
   `;
-
-  // Create and inject stylesheet
-  const styleSheet = d.createElement("style");
-  styleSheet.textContent = styles;
-  d.head.appendChild(styleSheet);
-
-  // Function to validate logo URL
-  function validateLogo(logoUrl) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const timeout = setTimeout(() => {
-        console.warn("Logo loading timed out, using default");
-        resolve(DEFAULT_LOGO);
-      }, 5000);
-
-      img.onload = () => {
-        clearTimeout(timeout);
-        resolve(logoUrl);
-      };
-
-      img.onerror = () => {
-        clearTimeout(timeout);
-        console.warn("Logo failed to load, using default");
-        resolve(DEFAULT_LOGO);
-      };
-
-      img.src = logoUrl;
-    });
-  }
-
-  let personaData;
-
-  async function persona() {
-    try {
-      const response = await fetch(
-        "https://intellientuat.azurewebsites.net/api/link-widget/intellibots",
-        {
-          method: "GET",
-        }
-      );
-      const data = await response.json();
-      personaData = data.response;
-      return data;
-    } catch {
-      console.log("error from persona getmethod");
-    }
-  }
-
-  function markdownToHtml(markdown) {
-    // Convert **bold** to <strong>
-    markdown = markdown.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-    // Convert *italic* to <em>
-    markdown = markdown.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-    // Convert - list items to <ul><li>
-    markdown = markdown.replace(/^\s*-\s+(.*)$/g, "<ul><li>$1</li></ul>");
-
-    // Handle line breaks
-    markdown = markdown.replace(/\n/g, "<br>");
-
-    return markdown;
-  }
-
-  // Updated code - Intellient UAT
-  let abortController = null;
-  let conversationHistory = [];
-  async function streamFromAzureOpenAI(
-    userMessage,
-    messageElement,
-    intelliBot
-  ) {
-    abortController = new AbortController();
-    const { signal } = abortController;
-    console.log("intelliBot", intelliBot);
-
-    console.log("userMessage", userMessage);
-    let filteredBot;
-    if (intelliBot) {
-      // console.log("intelliBot", await personaData);
-
-      filteredBot = personaData.filter((name) => name.name === intelliBot);
-      console.log("filteredBot", filteredBot);
-    }
-    conversationHistory.push({ role: "user", content: userMessage });
-    try {
-      const response = await fetch(
-        "https://intellientuat.azurewebsites.net/api/link-widget",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            userMessage,
-            filteredBot,
-            conversationHistory, // Add the data you want to pos
-          }),
-          signal,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("resposnes", data);
-      const contentSpan = messageElement.querySelector(".fini-message-content");
-
-      if (data.choices && data.choices[0]?.message?.content) {
-        let content = data.choices[0].message.content;
-        console.log("contemt", content);
-
-        content = markdownToHtml(content);
-        let displayedContent = "";
-        const contentArray = content.split("");
-
-        const messagesContainer = document.getElementById("finiChatMessages");
-
-        // Flag to check if the user has scrolled up
-        let userScrolledUp = false;
-
-        messagesContainer.addEventListener("scroll", () => {
-          const isAtBottom =
-            messagesContainer.scrollHeight -
-              messagesContainer.scrollTop -
-              messagesContainer.clientHeight <
-            10; // Adjust threshold as needed
-          userScrolledUp = !isAtBottom;
-        });
-        function updateContent(content) {
-          requestAnimationFrame(() => {
-            contentSpan.innerHTML = content;
-          });
-        }
-        for (const char of contentArray) {
-          if (signal.aborted) {
-            console.log("Streaming stopped");
-            return; // Exit the function early if the request is aborted
-          }
-          displayedContent += char;
-          updateContent(displayedContent);
-
-          if (!userScrolledUp) {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 5));
-        }
-        conversationHistory.push({ role: "assistant", content: content });
-      } else {
-        throw new Error("No content in response");
-      }
-    } catch (error) {
-      if (error.name === "AbortError") {
-        messageElement.querySelector(".fini-message-content").textContent =
-          "Response Stopped...";
-        console.log("Stream was aborted by user.");
-      } else {
-        console.error("Error:", error);
-
-        messageElement.querySelector(".fini-message-content").textContent =
-          "Sorry, there was an error processing your request. Please try again later.";
-      }
-    }
-  }
-  function logout() {
-    msalInstance.logout();
-  }
-  let logoutButton = "";
-  if (checkLoginStatus()) {
-    logoutButton = `<button id="finiChatLogout" onclick="logout()">Logout</button>`;
-  }
-
-  async function createChatWidget() {
-    let response = await persona();
-    const validatedLogo = await validateLogo(branding.logo);
+    const styleSheet = d.createElement("style");
+    styleSheet.textContent = styles;
+    d.head.appendChild(styleSheet);
 
     // Create launcher
     const launcher = d.createElement("div");
@@ -514,7 +440,9 @@ input {
       <div class="fini-chat-messages" id="finiChatMessages">
         <div class="fini-chat-message received">
           <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
-          <div class="fini-message-content">Welcome! How can I help you today?</div>
+          <div class="fini-message-content">${
+            validationResponse.welcomemessage
+          }</div>
           <div class="fini-timestamp">${new Date().toLocaleTimeString([], {
             hour: "numeric",
             minute: "2-digit",
@@ -568,7 +496,6 @@ input {
     stopButton.style.display = "none";
 
     async function sendMessage() {
-      // login();
       let intellibotName = "";
       const tagContainer = document.getElementById("tag-container");
       const tags = tagContainer.getElementsByClassName("tag");
@@ -593,18 +520,13 @@ input {
         // Add assistant message
         const assistantMessage = addMessage("", false);
         console.log("assistantMessage", assistantMessage);
-        // console.log("accounts", accounts);
 
-        // if (checkLoginStatus()) {
-        await streamFromAzureOpenAI(message, assistantMessage, "QudraInfo");
-        // } else {
-        //   try {
-        //     instance.loginPopup();
-        //   } catch {
-        //     console.log("login error");
-        //   }
-        // }
-        // addMessage("", true);
+        await streamFromAzureOpenAI(
+          message,
+          assistantMessage,
+          validationResponse.intellibot
+        );
+
         messageInput.disabled = false;
         sendButton.disabled = false;
         sendButton.style.display = "flex";
@@ -618,53 +540,6 @@ input {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
-      }
-    });
-
-    messageInput.addEventListener("input", async () => {
-      const message = messageInput.value.trim();
-
-      // Check if the input contains a name or meets specific conditions
-      if (message) {
-        if (message.includes("@")) {
-          let response = await persona();
-
-          const data = response.response;
-          console.log("intellibot resposnes", data); // Replace with the actual function you want to call
-          nameDropdown.innerHTML = "";
-          nameDropdown.style.display = "block";
-          data.forEach((item) => {
-            const nameItem = document.createElement("div");
-            nameItem.textContent = item.name; // Assuming 'name' is the field you want to display
-            nameItem.style.padding = "8px";
-            nameItem.style.cursor = "pointer";
-
-            // Add click event to insert the name into the input field
-            nameItem.addEventListener("click", () => {
-              const tagName = item.name; // Get the name from the item
-              // Create a tag element
-              const tagElement = document.createElement("span");
-              tagElement.className = "tag"; // You can style this class in your CSS
-              tagElement.textContent = `@${tagName}`;
-
-              // Append the tag to the chat container (or wherever you want)
-              const tagContainer = document.getElementById("tag-container");
-              tagContainer.appendChild(tagElement);
-
-              // Optionally, you can add functionality to remove the tag if needed
-              tagElement.addEventListener("click", () => {
-                tagContainer.removeChild(tagElement);
-              });
-
-              messageInput.value = ""; // Clear the input field
-              nameDropdown.style.display = "none";
-            });
-
-            nameDropdown.appendChild(nameItem);
-          });
-        }
-      } else {
-        nameDropdown.style.display = "none";
       }
     });
 
@@ -699,7 +574,7 @@ input {
 
     if (!isSent) {
       messageDiv.innerHTML = `
-      <img src="${branding.logo}" alt="Assistant" class="fini-chat-avatar">
+      <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
       <div class="fini-message-content">
         ${
           text ||
