@@ -91,7 +91,7 @@
         } else {
           content = data.choices;
         }
-        console.log("content", content);
+        console.log("contemt", content);
 
         content = markdownToHtml(content);
         let displayedContent = "";
@@ -168,7 +168,10 @@
     console.log("validationResponse", validationResponse);
     validatedLogo = validationResponse.widgetIcon;
 
-    if (!window.location.href.startsWith(validationResponse.domain)) {
+    if (
+      !window.location.href.startsWith(validationResponse.domain) &&
+      !validationResponse.isPublished
+    ) {
       console.log("unauthorised");
       return;
     }
@@ -233,6 +236,40 @@
       justify-content: space-between;
       align-items: center;
     }
+
+    .tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  bottom: 120%; /* Position tooltip above the button */
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 9px;
+  white-space: nowrap;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%; /* Arrow pointing down */
+  left: 62%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip {
+  display: block;
+}
  
     .fini-chat-header .fini-chat-avatar {
       width: 40px;
@@ -365,44 +402,44 @@
       animation: typing-animation 1.4s infinite ease-in-out;
     }
 
-#name-dropdown {
-    display: none;
-    position: absolute;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    z-index: 1000;
-    max-height: 200px;
-    overflow-y: auto;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
+    #name-dropdown {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
 
-#name-dropdown div {
-    padding: 10px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
+    #name-dropdown div {
+        padding: 10px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
 
-#name-dropdown div:hover {
-    background-color: #f0f0f0;
-}
+    #name-dropdown div:hover {
+        background-color: #f0f0f0;
+    }
 
-input {
-    width: 300px;
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    margin-bottom: 5px;
-}
+    input {
+        width: 300px;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        margin-bottom: 5px;
+    }
 
-.tag {
-    background-color: #0084ff;
-    color: white;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 10px;
-    padding: 2px;
-}
+    .tag {
+        background-color: #0084ff;
+        color: white;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 10px;
+        padding: 2px;
+    }
 
 
  
@@ -456,16 +493,19 @@ input {
 
       <div class="fini-chat-input">
         <input type="text" id="finiChatInput" placeholder="Type a message...">
-        <button id="finiChatSend">
-          <svg viewBox="0 0 24 24">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
+     <div class="tooltip-container">
+    <button id="finiChatSend">
+      <svg viewBox="0 0 24 24">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+      </svg>
+    </button>
+    <div id="tooltip" class="tooltip">Long press to activate voice chat</div>
+  </div>
            <button id="finiChatStop">
          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-    <circle cx="12" cy="12" r="10" fill="red" />
-    <rect x="7" y="7" width="10" height="10" fill="white" />
-  </svg>
+      <circle cx="12" cy="12" r="10" fill="red" />
+      <rect x="7" y="7" width="10" height="10" fill="white" />
+    </svg>
         </button>
       </div>
     `;
@@ -495,7 +535,69 @@ input {
     const stopButton = d.getElementById("finiChatStop");
     stopButton.style.display = "none";
 
+    function startVoiceRecognition() {
+      if (!("webkitSpeechRecognition" in window)) {
+        alert("Your browser does not support voice recognition.");
+        return;
+      }
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "en-US"; // Set language
+      recognition.interimResults = false; // Don't show interim results
+      recognition.maxAlternatives = 1; // Limit to one result
+
+      // Voice recognition event handlers
+      recognition.onstart = () => {
+        showMicIcon();
+        console.log("Voice recognition started...");
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("finiChatInput").value = transcript;
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Voice recognition error:", event.error);
+      };
+
+      recognition.onend = () => {
+        sendMessage();
+        resetSendButton();
+        console.log("Voice recognition ended.");
+      };
+
+      recognition.start();
+    }
+
+    // Function to temporarily replace the Send button with a mic icon
+    function showMicIcon() {
+      sendButton.innerHTML = `
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+      <path d="M12 15c1.66 0 3-1.34 3-3V6a3 3 0 0 0-6 0v6c0 1.66 1.34 3 3 3zm4.3-3c0 2.38-1.88 4.3-4.3 4.3S7.7 14.38 7.7 12H6.1c0 3.15 2.41 5.75 5.5 6.3v3h1.8v-3c3.09-.55 5.5-3.15 5.5-6.3h-1.6z" />
+    </svg>`;
+    }
+
+    // Function to reset the Send button to its original state
+    function resetSendButton() {
+      sendButton.innerHTML = `
+    <svg viewBox="0 0 24 24">
+      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+    </svg>`;
+    }
+    sendButton.onmousedown = sendButton.ontouchstart = () => {
+      longPressTimer = setTimeout(() => {
+        startVoiceRecognition();
+      }, 800); // Long press duration (800ms)
+    };
+
+    sendButton.onmouseup = sendButton.ontouchend = () => {
+      clearTimeout(longPressTimer);
+      // resetSendButton();
+    };
+
     async function sendMessage() {
+      console.log("enetered");
+
       let intellibotName = "";
       const tagContainer = document.getElementById("tag-container");
       const tags = tagContainer.getElementsByClassName("tag");
