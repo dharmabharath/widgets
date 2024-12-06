@@ -164,504 +164,501 @@
 
   async function createChatWidget() {
     await valiadateWidget(widgetId);
-
-    console.log("validationResponse", validationResponse);
     validatedLogo = validationResponse.widgetIcon;
+    const currentDomain = window.location.hostname;
+    const allowedDomain = new URL(validationResponse.domain).hostname;
+    if (validationResponse.isPublished && currentDomain === allowedDomain) {
+      await persona();
+      console.log("personaData", personaData);
 
-    if (
-      !window.location.href.startsWith(validationResponse.domain) &&
-      !validationResponse.isPublished
-    ) {
-      console.log("unauthorised");
-      return;
-    }
-    await persona();
-    console.log("personaData", personaData);
-
-    const styles = `
-    .fini-widget-base {
-      font-family: ${fontFamily};
-      z-index: 999999;
-    }
- 
-    .fini-chat-launcher {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 60px;
-      height: 60px;
-      background: white;
-      border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.3s ease;
-    }
- 
-    .fini-chat-launcher:hover {
-      transform: scale(1.1);
-    }
- 
-    .fini-chat-launcher img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-    }
- 
-    .fini-chat-container {
-      position: fixed;
-      bottom: 100px;
-      right: 20px;
-      width: 350px;
-      height: 500px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      display: none;
-      flex-direction: column;
-    }
- 
-    .fini-chat-container.visible {
-      display: flex;
-    }
- 
-    .fini-chat-header {
-      padding: 16px;
-      background: ${validationResponse.color};
-      color: white;
-      border-radius: 12px 12px 0 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .tooltip-container {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip {
-  display: none;
-  position: absolute;
-  bottom: 120%; /* Position tooltip above the button */
-  transform: translateX(-50%);
-  background-color: #333;
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 9px;
-  white-space: nowrap;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.tooltip::after {
-  content: "";
-  position: absolute;
-  top: 100%; /* Arrow pointing down */
-  left: 62%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: #333 transparent transparent transparent;
-}
-
-.tooltip-container:hover .tooltip {
-  display: block;
-}
- 
-    .fini-chat-header .fini-chat-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 12px;
-    }
- 
-    .fini-chat-close {
-      cursor: pointer;
-      padding: 5px;
-    }
- 
-    .fini-chat-close svg {
-      width: 20px;
-      height: 20px;
-      fill: white;
-    }
- 
-    .fini-chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: ${secondaryColor};
-    }
- 
-    .fini-chat-message {
-      padding: 8px 16px;
-      border-radius: 16px;
-      margin: 4px 0;
-      word-wrap: break-word;
-      font-size: 13px;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
- 
-    .fini-chat-message .fini-chat-avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
- 
-    .fini-message-content {
-      flex-grow: 1;
-    }
- 
-    .fini-chat-message.received {
-      background: white;
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
-    }
- 
-    .fini-chat-message.sent {
-      background: ${validationResponse.color};
-      color: white;
-      align-self: flex-end;
-      border-bottom-right-radius: 4px;
-    }
- 
-    .fini-chat-input {
-      padding: 16px;
-      background: white;
-      border-radius: 0 0 12px 12px;
-      display: flex;
-      gap: 8px;
-    }
- 
-    .fini-chat-input input {
-      flex: 1;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 24px;
-      outline: none;
-      font-size: 14px;
-    }
- 
-    .fini-chat-input button {
-      padding: 12px;
-      background: ${validationResponse.color};
-      color: white;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
- 
-    .fini-chat-input button:disabled {
-      background: #cccccc;
-      cursor: not-allowed;
-    }
- 
-    .fini-chat-input button svg {
-      width: 20px;
-      height: 20px;
-      fill: white;
-    }
-        .ask-intellient-title {
-    display: block; 
-    font-size: 20px;
-    margin: 0;
-    font-weight: bold;
-  }
- 
-    .fini-timestamp {
-      font-size: 12px;
-      color: #65676b;
-      margin-top: 4px;
-      text-align: right;
-    }
- 
-    .fini-typing-indicator {
-      display: flex;
-      gap: 4px;
-      padding: 8px;
-    }
- 
-    .fini-typing-dot {
-      width: 8px;
-      height: 8px;
-      background: #90949c;
-      border-radius: 50%;
-      animation: typing-animation 1.4s infinite ease-in-out;
-    }
-
-    #name-dropdown {
-        display: none;
-        position: absolute;
+      const styles = `
+      .fini-widget-base {
+        font-family: ${fontFamily};
+        z-index: 999999;
+      }
+   
+      .fini-chat-launcher {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
         background: white;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        z-index: 1000;
-        max-height: 200px;
-        overflow-y: auto;
+        border-radius: 50%;
+        cursor: pointer;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    #name-dropdown div {
-        padding: 10px;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    #name-dropdown div:hover {
-        background-color: #f0f0f0;
-    }
-
-    input {
-        width: 300px;
-        padding: 10px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        margin-bottom: 5px;
-    }
-
-    .tag {
-        background-color: #0084ff;
-        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s ease;
+      }
+   
+      .fini-chat-launcher:hover {
+        transform: scale(1.1);
+      }
+   
+      .fini-chat-launcher img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+      }
+   
+      .fini-chat-container {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        width: 350px;
+        height: 500px;
+        background: white;
         border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        display: none;
+        flex-direction: column;
+      }
+   
+      .fini-chat-container.visible {
+        display: flex;
+      }
+   
+      .fini-chat-header {
+        padding: 16px;
+        background: ${validationResponse.color};
+        color: white;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+  
+      .tooltip-container {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .tooltip {
+    display: none;
+    position: absolute;
+    bottom: 120%; /* Position tooltip above the button */
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 9px;
+    white-space: nowrap;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* Arrow pointing down */
+    left: 62%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+  }
+  
+  .tooltip-container:hover .tooltip {
+    display: block;
+  }
+   
+      .fini-chat-header .fini-chat-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
+      }
+   
+      .fini-chat-close {
         cursor: pointer;
-        font-size: 10px;
-        padding: 2px;
+        padding: 5px;
+      }
+   
+      .fini-chat-close svg {
+        width: 20px;
+        height: 20px;
+        fill: white;
+      }
+   
+      .fini-chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: ${secondaryColor};
+      }
+   
+      .fini-chat-message {
+        padding: 8px 16px;
+        border-radius: 16px;
+        margin: 4px 0;
+        word-wrap: break-word;
+        font-size: 13px;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+   
+      .fini-chat-message .fini-chat-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+   
+      .fini-message-content {
+        flex-grow: 1;
+      }
+   
+      .fini-chat-message.received {
+        background: white;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+   
+      .fini-chat-message.sent {
+        background: ${validationResponse.color};
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+      }
+   
+      .fini-chat-input {
+        padding: 16px;
+        background: white;
+        border-radius: 0 0 12px 12px;
+        display: flex;
+        gap: 8px;
+      }
+   
+      .fini-chat-input input {
+        flex: 1;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 24px;
+        outline: none;
+        font-size: 14px;
+      }
+   
+      .fini-chat-input button {
+        padding: 12px;
+        background: ${validationResponse.color};
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+   
+      .fini-chat-input button:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+      }
+   
+      .fini-chat-input button svg {
+        width: 20px;
+        height: 20px;
+        fill: white;
+      }
+          .ask-intellient-title {
+      display: block; 
+      font-size: 20px;
+      margin: 0;
+      font-weight: bold;
     }
+   
+      .fini-timestamp {
+        font-size: 12px;
+        color: #65676b;
+        margin-top: 4px;
+        text-align: right;
+      }
+   
+      .fini-typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 8px;
+      }
+   
+      .fini-typing-dot {
+        width: 8px;
+        height: 8px;
+        background: #90949c;
+        border-radius: 50%;
+        animation: typing-animation 1.4s infinite ease-in-out;
+      }
+  
+      #name-dropdown {
+          display: none;
+          position: absolute;
+          background: white;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          z-index: 1000;
+          max-height: 200px;
+          overflow-y: auto;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+  
+      #name-dropdown div {
+          padding: 10px;
+          cursor: pointer;
+          transition: background 0.3s;
+      }
+  
+      #name-dropdown div:hover {
+          background-color: #f0f0f0;
+      }
+  
+      input {
+          width: 300px;
+          padding: 10px;
+          border-radius: 4px;
+          border: 1px solid #ccc;
+          margin-bottom: 5px;
+      }
+  
+      .tag {
+          background-color: #0084ff;
+          color: white;
+          border-radius: 12px;
+          cursor: pointer;
+          font-size: 10px;
+          padding: 2px;
+      }
+  
+  
+   
+      .fini-typing-dot:nth-child(1) { animation-delay: 0s; }
+      .fini-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+      .fini-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+   
+      @keyframes typing-animation {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+      }
+    `;
+      const styleSheet = d.createElement("style");
+      styleSheet.textContent = styles;
+      d.head.appendChild(styleSheet);
 
+      // Create launcher
+      const launcher = d.createElement("div");
+      launcher.className = "fini-widget-base fini-chat-launcher";
+      launcher.innerHTML = `<img src="${validatedLogo}" alt="Chat">`;
 
- 
-    .fini-typing-dot:nth-child(1) { animation-delay: 0s; }
-    .fini-typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .fini-typing-dot:nth-child(3) { animation-delay: 0.4s; }
- 
-    @keyframes typing-animation {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-  `;
-    const styleSheet = d.createElement("style");
-    styleSheet.textContent = styles;
-    d.head.appendChild(styleSheet);
-
-    // Create launcher
-    const launcher = d.createElement("div");
-    launcher.className = "fini-widget-base fini-chat-launcher";
-    launcher.innerHTML = `<img src="${validatedLogo}" alt="Chat">`;
-
-    // Create chat container
-    const chatContainer = d.createElement("div");
-    chatContainer.className = "fini-widget-base fini-chat-container";
-    chatContainer.innerHTML = `
-      <div class="fini-chat-header">
-        <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
-           <label class="ask-intellient-title">Ask Intellient</label>
-        <div class="fini-chat-close">
-          <svg viewBox="0 0 24 24">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
-          </svg>
-        </div>
-      </div>
-      <div class="fini-chat-messages" id="finiChatMessages">
-        <div class="fini-chat-message received">
+      // Create chat container
+      const chatContainer = d.createElement("div");
+      chatContainer.className = "fini-widget-base fini-chat-container";
+      chatContainer.innerHTML = `
+        <div class="fini-chat-header">
           <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
-          <div class="fini-message-content">${
-            validationResponse.welcomemessage
-          }</div>
-          <div class="fini-timestamp">${new Date().toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-          })}</div>
+             <label class="ask-intellient-title">Ask Intellient</label>
+          <div class="fini-chat-close">
+            <svg viewBox="0 0 24 24">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+            </svg>
+          </div>
         </div>
-      </div>
-      
-              <div id="name-dropdown" style="display: none; position: absolute; background: white; border: 1px solid #ccc; z-index: 1000;"></div>
+        <div class="fini-chat-messages" id="finiChatMessages">
+          <div class="fini-chat-message received">
+            <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
+            <div class="fini-message-content">${
+              validationResponse.welcomemessage
+            }</div>
+            <div class="fini-timestamp">${new Date().toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })}</div>
+          </div>
+        </div>
+        
+                <div id="name-dropdown" style="display: none; position: absolute; background: white; border: 1px solid #ccc; z-index: 1000;"></div>
+  
+                <div id="tag-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;"></div>
+  
+        <div class="fini-chat-input">
+          <input type="text" id="finiChatInput" placeholder="Type a message...">
+       <div class="tooltip-container">
+      <button id="finiChatSend">
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+        </svg>
+      </button>
+      <div id="tooltip" class="tooltip">Long press to activate voice chat</div>
+    </div>
+             <button id="finiChatStop">
+           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+        <circle cx="12" cy="12" r="10" fill="red" />
+        <rect x="7" y="7" width="10" height="10" fill="white" />
+      </svg>
+          </button>
+        </div>
+      `;
 
-              <div id="tag-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;"></div>
+      // Add elements to page
+      d.body.appendChild(launcher);
+      d.body.appendChild(chatContainer);
 
-      <div class="fini-chat-input">
-        <input type="text" id="finiChatInput" placeholder="Type a message...">
-     <div class="tooltip-container">
-    <button id="finiChatSend">
+      // Add event listeners
+      launcher.addEventListener("click", () => {
+        chatContainer.classList.add("visible");
+        launcher.style.display = "none";
+        const input = d.getElementById("finiChatInput");
+        if (input) input.focus();
+      });
+
+      const closeButton = chatContainer.querySelector(".fini-chat-close");
+      closeButton.addEventListener("click", () => {
+        chatContainer.classList.remove("visible");
+        launcher.style.display = "flex";
+      });
+
+      // Setup message handling
+      const messageInput = d.getElementById("finiChatInput");
+      const nameDropdown = document.getElementById("name-dropdown");
+      const sendButton = d.getElementById("finiChatSend");
+      const stopButton = d.getElementById("finiChatStop");
+      stopButton.style.display = "none";
+
+      function startVoiceRecognition() {
+        if (!("webkitSpeechRecognition" in window)) {
+          alert("Your browser does not support voice recognition.");
+          return;
+        }
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = "en-US"; // Set language
+        recognition.interimResults = false; // Don't show interim results
+        recognition.maxAlternatives = 1; // Limit to one result
+
+        // Voice recognition event handlers
+        recognition.onstart = () => {
+          showMicIcon();
+          console.log("Voice recognition started...");
+        };
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById("finiChatInput").value = transcript;
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Voice recognition error:", event.error);
+        };
+
+        recognition.onend = () => {
+          sendMessage();
+          resetSendButton();
+          console.log("Voice recognition ended.");
+        };
+
+        recognition.start();
+      }
+
+      // Function to temporarily replace the Send button with a mic icon
+      function showMicIcon() {
+        sendButton.innerHTML = `
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+        <path d="M12 15c1.66 0 3-1.34 3-3V6a3 3 0 0 0-6 0v6c0 1.66 1.34 3 3 3zm4.3-3c0 2.38-1.88 4.3-4.3 4.3S7.7 14.38 7.7 12H6.1c0 3.15 2.41 5.75 5.5 6.3v3h1.8v-3c3.09-.55 5.5-3.15 5.5-6.3h-1.6z" />
+      </svg>`;
+      }
+
+      // Function to reset the Send button to its original state
+      function resetSendButton() {
+        sendButton.innerHTML = `
       <svg viewBox="0 0 24 24">
         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-      </svg>
-    </button>
-    <div id="tooltip" class="tooltip">Long press to activate voice chat</div>
-  </div>
-           <button id="finiChatStop">
-         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-      <circle cx="12" cy="12" r="10" fill="red" />
-      <rect x="7" y="7" width="10" height="10" fill="white" />
-    </svg>
-        </button>
-      </div>
-    `;
-
-    // Add elements to page
-    d.body.appendChild(launcher);
-    d.body.appendChild(chatContainer);
-
-    // Add event listeners
-    launcher.addEventListener("click", () => {
-      chatContainer.classList.add("visible");
-      launcher.style.display = "none";
-      const input = d.getElementById("finiChatInput");
-      if (input) input.focus();
-    });
-
-    const closeButton = chatContainer.querySelector(".fini-chat-close");
-    closeButton.addEventListener("click", () => {
-      chatContainer.classList.remove("visible");
-      launcher.style.display = "flex";
-    });
-
-    // Setup message handling
-    const messageInput = d.getElementById("finiChatInput");
-    const nameDropdown = document.getElementById("name-dropdown");
-    const sendButton = d.getElementById("finiChatSend");
-    const stopButton = d.getElementById("finiChatStop");
-    stopButton.style.display = "none";
-
-    function startVoiceRecognition() {
-      if (!("webkitSpeechRecognition" in window)) {
-        alert("Your browser does not support voice recognition.");
-        return;
+      </svg>`;
       }
-      const recognition = new webkitSpeechRecognition();
-      recognition.lang = "en-US"; // Set language
-      recognition.interimResults = false; // Don't show interim results
-      recognition.maxAlternatives = 1; // Limit to one result
-
-      // Voice recognition event handlers
-      recognition.onstart = () => {
-        showMicIcon();
-        console.log("Voice recognition started...");
+      sendButton.onmousedown = sendButton.ontouchstart = () => {
+        longPressTimer = setTimeout(() => {
+          startVoiceRecognition();
+        }, 800); // Long press duration (800ms)
       };
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById("finiChatInput").value = transcript;
+      sendButton.onmouseup = sendButton.ontouchend = () => {
+        clearTimeout(longPressTimer);
+        // resetSendButton();
       };
 
-      recognition.onerror = (event) => {
-        console.error("Voice recognition error:", event.error);
-      };
+      async function sendMessage() {
+        console.log("enetered");
 
-      recognition.onend = () => {
-        sendMessage();
-        resetSendButton();
-        console.log("Voice recognition ended.");
-      };
+        let intellibotName = "";
+        const tagContainer = document.getElementById("tag-container");
+        const tags = tagContainer.getElementsByClassName("tag");
+        if (tags.length !== 0) {
+          intellibotName = tags[0].textContent.slice(1);
+        }
 
-      recognition.start();
+        const message = messageInput.value.trim();
+        console.log("messages", message);
+        console.log("intellibotName", intellibotName);
+
+        if (message) {
+          sendButton.style.display = "none";
+          stopButton.style.display = "flex";
+          messageInput.disabled = true;
+          sendButton.disabled = true;
+
+          // Add user message
+          addMessage(message, true);
+          messageInput.value = "";
+
+          // Add assistant message
+          const assistantMessage = addMessage("", false);
+          console.log("assistantMessage", assistantMessage);
+
+          await streamFromAzureOpenAI(
+            message,
+            assistantMessage,
+            validationResponse.intellibot
+          );
+
+          messageInput.disabled = false;
+          sendButton.disabled = false;
+          sendButton.style.display = "flex";
+          stopButton.style.display = "none";
+          messageInput.focus();
+        }
+      }
+
+      sendButton.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Hide dropdown when clicking outside
+      document.addEventListener("click", (event) => {
+        if (
+          !nameDropdown.contains(event.target) &&
+          event.target !== messageInput
+        ) {
+          nameDropdown.style.display = "none"; // Hide dropdown
+        }
+      });
+
+      stopButton.addEventListener("click", () => {
+        if (abortController) {
+          abortController.abort(); // Abort the ongoing fetch request
+          stopButton.style.display = "none"; // Hide the stop button after stopping the stream
+          console.log("Streaming process stopped.");
+        }
+      });
+    } else {
+      console.log("Unauthorized domain or widget not published");
+      return;
     }
-
-    // Function to temporarily replace the Send button with a mic icon
-    function showMicIcon() {
-      sendButton.innerHTML = `
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
-      <path d="M12 15c1.66 0 3-1.34 3-3V6a3 3 0 0 0-6 0v6c0 1.66 1.34 3 3 3zm4.3-3c0 2.38-1.88 4.3-4.3 4.3S7.7 14.38 7.7 12H6.1c0 3.15 2.41 5.75 5.5 6.3v3h1.8v-3c3.09-.55 5.5-3.15 5.5-6.3h-1.6z" />
-    </svg>`;
-    }
-
-    // Function to reset the Send button to its original state
-    function resetSendButton() {
-      sendButton.innerHTML = `
-    <svg viewBox="0 0 24 24">
-      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-    </svg>`;
-    }
-    sendButton.onmousedown = sendButton.ontouchstart = () => {
-      longPressTimer = setTimeout(() => {
-        startVoiceRecognition();
-      }, 800); // Long press duration (800ms)
-    };
-
-    sendButton.onmouseup = sendButton.ontouchend = () => {
-      clearTimeout(longPressTimer);
-      // resetSendButton();
-    };
-
-    async function sendMessage() {
-      console.log("enetered");
-
-      let intellibotName = "";
-      const tagContainer = document.getElementById("tag-container");
-      const tags = tagContainer.getElementsByClassName("tag");
-      if (tags.length !== 0) {
-        intellibotName = tags[0].textContent.slice(1);
-      }
-
-      const message = messageInput.value.trim();
-      console.log("messages", message);
-      console.log("intellibotName", intellibotName);
-
-      if (message) {
-        sendButton.style.display = "none";
-        stopButton.style.display = "flex";
-        messageInput.disabled = true;
-        sendButton.disabled = true;
-
-        // Add user message
-        addMessage(message, true);
-        messageInput.value = "";
-
-        // Add assistant message
-        const assistantMessage = addMessage("", false);
-        console.log("assistantMessage", assistantMessage);
-
-        await streamFromAzureOpenAI(
-          message,
-          assistantMessage,
-          validationResponse.intellibot
-        );
-
-        messageInput.disabled = false;
-        sendButton.disabled = false;
-        sendButton.style.display = "flex";
-        stopButton.style.display = "none";
-        messageInput.focus();
-      }
-    }
-
-    sendButton.addEventListener("click", sendMessage);
-    messageInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Hide dropdown when clicking outside
-    document.addEventListener("click", (event) => {
-      if (
-        !nameDropdown.contains(event.target) &&
-        event.target !== messageInput
-      ) {
-        nameDropdown.style.display = "none"; // Hide dropdown
-      }
-    });
-
-    stopButton.addEventListener("click", () => {
-      if (abortController) {
-        abortController.abort(); // Abort the ongoing fetch request
-        stopButton.style.display = "none"; // Hide the stop button after stopping the stream
-        console.log("Streaming process stopped.");
-      }
-    });
   }
 
   function addMessage(text, isSent) {
