@@ -82,7 +82,9 @@
 
       const data = await response.json();
       console.log("resposnes", data);
-      const contentSpan = messageElement.querySelector(".fini-message-content");
+      const contentSpan = messageElement.querySelector(
+        ".intellient-message-content"
+      );
 
       if (data.choices) {
         let content;
@@ -97,7 +99,9 @@
         let displayedContent = "";
         const contentArray = content.split("");
 
-        const messagesContainer = document.getElementById("finiChatMessages");
+        const messagesContainer = document.getElementById(
+          "intellientChatMessages"
+        );
 
         // Flag to check if the user has scrolled up
         let userScrolledUp = false;
@@ -135,13 +139,16 @@
       }
     } catch (error) {
       if (error.name === "AbortError") {
-        messageElement.querySelector(".fini-message-content").textContent =
-          "Response Stopped...";
+        messageElement.querySelector(
+          ".intellient-message-content"
+        ).textContent = "Response Stopped...";
         console.log("Stream was aborted by user.");
       } else {
         console.error("Error:", error);
 
-        messageElement.querySelector(".fini-message-content").textContent =
+        messageElement.querySelector(
+          ".intellient-message-content"
+        ).textContent =
           "Sorry, there was an error processing your request. Please try again later.";
       }
     }
@@ -172,12 +179,12 @@
       console.log("personaData", personaData);
 
       const styles = `
-      .fini-widget-base {
+      .intellient-widget-base {
         font-family: ${fontFamily};
         z-index: 999999;
       }
    
-      .fini-chat-launcher {
+      .intellient-chat-launcher {
         position: fixed;
         bottom: 20px;
         right: 20px;
@@ -193,17 +200,17 @@
         transition: transform 0.3s ease;
       }
    
-      .fini-chat-launcher:hover {
+      .intellient-chat-launcher:hover {
         transform: scale(1.1);
       }
    
-      .fini-chat-launcher img {
+      .intellient-chat-launcher img {
         width: 40px;
         height: 40px;
         border-radius: 50%;
       }
    
-      .fini-chat-container {
+      .intellient-chat-container {
         position: fixed;
         bottom: 100px;
         right: 20px;
@@ -216,11 +223,11 @@
         flex-direction: column;
       }
    
-      .fini-chat-container.visible {
+      .intellient-chat-container.visible {
         display: flex;
       }
    
-      .fini-chat-header {
+      .intellient-chat-header {
         padding: 16px;
         background: ${validationResponse.color};
         color: white;
@@ -264,25 +271,25 @@
     display: block;
   }
    
-      .fini-chat-header .fini-chat-avatar {
+      .intellient-chat-header .intellient-chat-avatar {
         width: 40px;
         height: 40px;
         border-radius: 50%;
         margin-right: 12px;
       }
    
-      .fini-chat-close {
+      .intellient-chat-close {
         cursor: pointer;
         padding: 5px;
       }
    
-      .fini-chat-close svg {
+      .intellient-chat-close svg {
         width: 20px;
         height: 20px;
         fill: white;
       }
    
-      .fini-chat-messages {
+      .intellient-chat-messages {
         flex: 1;
         overflow-y: auto;
         padding: 16px;
@@ -292,7 +299,7 @@
         background: ${secondaryColor};
       }
    
-      .fini-chat-message {
+      .intellient-chat-message {
         padding: 8px 16px;
         border-radius: 16px;
         margin: 4px 0;
@@ -303,31 +310,31 @@
         gap: 8px;
       }
    
-      .fini-chat-message .fini-chat-avatar {
+      .intellient-chat-message .intellient-chat-avatar {
         width: 30px;
         height: 30px;
         border-radius: 50%;
         flex-shrink: 0;
       }
    
-      .fini-message-content {
+      .intellient-message-content {
         flex-grow: 1;
       }
    
-      .fini-chat-message.received {
+      .intellient-chat-message.received {
         background: white;
         align-self: flex-start;
         border-bottom-left-radius: 4px;
       }
    
-      .fini-chat-message.sent {
+      .intellient-chat-message.sent {
         background: ${validationResponse.color};
         color: white;
         align-self: flex-end;
         border-bottom-right-radius: 4px;
       }
    
-      .fini-chat-input {
+      .intellient-chat-input {
         padding: 16px;
         background: white;
         border-radius: 0 0 12px 12px;
@@ -335,7 +342,7 @@
         gap: 8px;
       }
    
-      .fini-chat-input input {
+      .intellient-chat-input input {
         flex: 1;
         padding: 12px;
         border: 1px solid #ddd;
@@ -344,7 +351,7 @@
         font-size: 14px;
       }
    
-      .fini-chat-input button {
+      .intellient-chat-input button {
         padding: 12px;
         background: ${validationResponse.color};
         color: white;
@@ -357,12 +364,12 @@
         justify-content: center;
       }
    
-      .fini-chat-input button:disabled {
+      .intellient-chat-input button:disabled {
         background: #cccccc;
         cursor: not-allowed;
       }
    
-      .fini-chat-input button svg {
+      .intellient-chat-input button svg {
         width: 20px;
         height: 20px;
         fill: white;
@@ -374,25 +381,25 @@
       font-weight: bold;
     }
    
-      .fini-timestamp {
+      .intellient-timestamp {
         font-size: 12px;
         color: #65676b;
         margin-top: 4px;
         text-align: right;
       }
    
-      .fini-typing-indicator {
+      .intellient-typing-indicator {
         display: flex;
         gap: 4px;
         padding: 8px;
       }
    
-      .fini-typing-dot {
+      .intellient-typing-dot {
         width: 8px;
         height: 8px;
         background: #90949c;
         border-radius: 50%;
-        animation: typing-animation 1.4s infinite ease-in-out;
+        animation: typing-animation 1.4s inintellientte ease-in-out;
       }
   
       #name-dropdown {
@@ -436,9 +443,9 @@
   
   
    
-      .fini-typing-dot:nth-child(1) { animation-delay: 0s; }
-      .fini-typing-dot:nth-child(2) { animation-delay: 0.2s; }
-      .fini-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+      .intellient-typing-dot:nth-child(1) { animation-delay: 0s; }
+      .intellient-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+      .intellient-typing-dot:nth-child(3) { animation-delay: 0.4s; }
    
       @keyframes typing-animation {
         0%, 100% { transform: translateY(0); }
@@ -451,32 +458,36 @@
 
       // Create launcher
       const launcher = d.createElement("div");
-      launcher.className = "fini-widget-base fini-chat-launcher";
+      launcher.className = "intellient-widget-base intellient-chat-launcher";
       launcher.innerHTML = `<img src="${validatedLogo}" alt="Chat">`;
 
       // Create chat container
       const chatContainer = d.createElement("div");
-      chatContainer.className = "fini-widget-base fini-chat-container";
+      chatContainer.className =
+        "intellient-widget-base intellient-chat-container";
       chatContainer.innerHTML = `
-        <div class="fini-chat-header">
-          <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
+        <div class="intellient-chat-header">
+          <img src="${validatedLogo}" alt="Assistant" class="intellient-chat-avatar">
              <label class="ask-intellient-title">Ask Intellient</label>
-          <div class="fini-chat-close">
+          <div class="intellient-chat-close">
             <svg viewBox="0 0 24 24">
               <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
             </svg>
           </div>
         </div>
-        <div class="fini-chat-messages" id="finiChatMessages">
-          <div class="fini-chat-message received">
-            <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
-            <div class="fini-message-content">${
+        <div class="intellient-chat-messages" id="intellientChatMessages">
+          <div class="intellient-chat-message received">
+            <img src="${validatedLogo}" alt="Assistant" class="intellient-chat-avatar">
+            <div class="intellient-message-content">${
               validationResponse.welcomemessage
             }</div>
-            <div class="fini-timestamp">${new Date().toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })}</div>
+            <div class="intellient-timestamp">${new Date().toLocaleTimeString(
+              [],
+              {
+                hour: "numeric",
+                minute: "2-digit",
+              }
+            )}</div>
           </div>
         </div>
         
@@ -484,17 +495,17 @@
   
                 <div id="tag-container" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;"></div>
   
-        <div class="fini-chat-input">
-          <input type="text" id="finiChatInput" placeholder="Type a message...">
+        <div class="intellient-chat-input">
+          <input type="text" id="intellientChatInput" placeholder="Type a message...">
        <div class="tooltip-container">
-      <button id="finiChatSend">
+      <button id="intellientChatSend">
         <svg viewBox="0 0 24 24">
           <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
         </svg>
       </button>
       <div id="tooltip" class="tooltip">Long press to activate voice chat</div>
     </div>
-             <button id="finiChatStop">
+             <button id="intellientChatStop">
            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
         <circle cx="12" cy="12" r="10" fill="red" />
         <rect x="7" y="7" width="10" height="10" fill="white" />
@@ -511,21 +522,21 @@
       launcher.addEventListener("click", () => {
         chatContainer.classList.add("visible");
         launcher.style.display = "none";
-        const input = d.getElementById("finiChatInput");
+        const input = d.getElementById("intellientChatInput");
         if (input) input.focus();
       });
 
-      const closeButton = chatContainer.querySelector(".fini-chat-close");
+      const closeButton = chatContainer.querySelector(".intellient-chat-close");
       closeButton.addEventListener("click", () => {
         chatContainer.classList.remove("visible");
         launcher.style.display = "flex";
       });
 
       // Setup message handling
-      const messageInput = d.getElementById("finiChatInput");
+      const messageInput = d.getElementById("intellientChatInput");
       const nameDropdown = document.getElementById("name-dropdown");
-      const sendButton = d.getElementById("finiChatSend");
-      const stopButton = d.getElementById("finiChatStop");
+      const sendButton = d.getElementById("intellientChatSend");
+      const stopButton = d.getElementById("intellientChatStop");
       stopButton.style.display = "none";
 
       function startVoiceRecognition() {
@@ -546,7 +557,7 @@
 
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
-          document.getElementById("finiChatInput").value = transcript;
+          document.getElementById("intellientChatInput").value = transcript;
         };
 
         recognition.onerror = (event) => {
@@ -662,9 +673,11 @@
   }
 
   function addMessage(text, isSent) {
-    const container = d.getElementById("finiChatMessages");
+    const container = d.getElementById("intellientChatMessages");
     const messageDiv = d.createElement("div");
-    messageDiv.className = `fini-chat-message ${isSent ? "sent" : "received"}`;
+    messageDiv.className = `intellient-chat-message ${
+      isSent ? "sent" : "received"
+    }`;
 
     const timestamp = new Date().toLocaleTimeString([], {
       hour: "numeric",
@@ -673,23 +686,23 @@
 
     if (!isSent) {
       messageDiv.innerHTML = `
-      <img src="${validatedLogo}" alt="Assistant" class="fini-chat-avatar">
-      <div class="fini-message-content">
+      <img src="${validatedLogo}" alt="Assistant" class="intellient-chat-avatar">
+      <div class="intellient-message-content">
         ${
           text ||
-          `<div class="fini-typing-indicator">
-          <div class="fini-typing-dot"></div>
-          <div class="fini-typing-dot"></div>
-          <div class="fini-typing-dot"></div>
+          `<div class="intellient-typing-indicator">
+          <div class="intellient-typing-dot"></div>
+          <div class="intellient-typing-dot"></div>
+          <div class="intellient-typing-dot"></div>
         </div>`
         }
       </div>
-      <div class="fini-timestamp">${timestamp}</div>
+      <div class="intellient-timestamp">${timestamp}</div>
     `;
     } else {
       messageDiv.innerHTML = `
-        <div class="fini-message-content">${text}</div>
-        <div class="fini-timestamp">${timestamp}</div>
+        <div class="intellient-message-content">${text}</div>
+        <div class="intellient-timestamp">${timestamp}</div>
       `;
     }
 
